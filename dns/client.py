@@ -1,10 +1,13 @@
 import ipaddress
+import random
+from logging import getLogger
 
+from common.constant import DNS_ENTRY_EXPIRATION_TIME
 from common.device import Device
 from common.packet import DNSQueryPacket, DNSResponsePacket
-from common.constant import DNS_ENTRY_EXPIRATION_TIME
 from dns.server import DNSServer
-import random
+
+logger = getLogger()
 
 
 class DNSClient(Device):
@@ -27,7 +30,7 @@ class DNSClient(Device):
         while True:
             yield self.env.timeout(1)
             packet = yield self.queue.get()
-            print("%s: Received: %s" % (self.name, packet))
+            logger.info("%s: Received: %s" % (self.name, packet))
             if isinstance(packet, DNSResponsePacket):
                 self.dns_cache[packet.name] = (packet.ip,
                                                self.env.now + DNS_ENTRY_EXPIRATION_TIME)
@@ -38,4 +41,3 @@ class DNSClient(Device):
             name = random.choice(names)
             if name not in self.dns_cache:
                 self.query(name)
-

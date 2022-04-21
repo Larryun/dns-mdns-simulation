@@ -2,6 +2,9 @@ import ipaddress
 
 from common.device import Device
 from common.packet import DNSQueryPacket, DNSResponsePacket
+from logging import getLogger
+
+logger = getLogger()
 
 
 class DNSServer(Device):
@@ -17,7 +20,7 @@ class DNSServer(Device):
         while True:
             yield self.env.timeout(0.1)
             packet = yield self.queue.get()
-            print("%s: Received: %s" % (self.name, packet))
+            logger.info("%s: Received: %s" % (self.name, packet))
             if isinstance(packet, DNSQueryPacket) and packet.name in self.dns_db:
                 self.unicast(
                     DNSResponsePacket(self, packet.src, packet.name, self.dns_db[packet.name])
