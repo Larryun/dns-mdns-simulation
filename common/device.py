@@ -1,3 +1,4 @@
+import copy
 import ipaddress
 
 import simpy
@@ -12,7 +13,7 @@ class Device:
         self.name = name
         self.ip = ip
         self.group_ip = None
-        self.link = []
+        self.link = set()
         self.queue = simpy.Store(env, capacity=DEVICE_QUEUE_SIZE)
         self.env = env
 
@@ -32,8 +33,11 @@ class Device:
     def multicast(self, group_ip, packet):
         for l in self.link:
             for dev in l.devices:
-                if dev.group_ip == group_ip:
-                    l.transmit(packet)
+                if dev != self and dev.group_ip == group_ip:
+                    packet = copy.copy(packet)
+                    packet.dest = dev
+                    # print(self, packet)
+                    self.env.process(l.transmit(packet))
 
     def process(self):
         raise NotImplementedError

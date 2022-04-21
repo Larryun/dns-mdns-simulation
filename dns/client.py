@@ -2,8 +2,9 @@ import ipaddress
 import random
 from logging import getLogger
 
-from common.constant import DNS_ENTRY_EXPIRATION_TIME
+from common.constant import ENTRY_EXPIRATION_TIME, QUERY_INTERVAL, CLIENT_PROCESS_TIME
 from common.device import Device
+from common.metric import ClientMetric
 from common.packet import DNSQueryPacket, DNSResponsePacket
 from dns.server import DNSServer
 
@@ -17,27 +18,32 @@ class DNSClient(Device):
         self.dns_cache = {}
         self.dns_server = dns_server
 
+        self.metric = ClientMetric()
+
     def query(self, name):
         if name == self.name:
             return
+
+        self.metric.query_count += 1
         if name not in self.dns_cache:
             self.unicast(DNSQueryPacket(self, self.dns_server, name))
-        elif self.dns_cache[name] < self.env.now:
+        elif self.dns_cache[name][1] < self.env.now:
             del self.dns_cache[name]
             self.unicast(DNSQueryPacket(self, self.dns_server, name))
+        else:
+            self.metric.cache_hit_count += 1
 
     def process(self):
         while True:
-            yield self.env.timeout(1)
+            yield self.env.timeout(CLIENT_PROCESS_TIME)
             packet = yield self.queue.get()
             logger.info("%s: Received: %s" % (self.name, packet))
             if isinstance(packet, DNSResponsePacket):
                 self.dns_cache[packet.name] = (packet.ip,
-                                               self.env.now + DNS_ENTRY_EXPIRATION_TIME)
+                                               self.env.now + ENTRY_EXPIRATION_TIME)
 
     def generate(self, names):
         while True:
-            yield self.env.timeout(5)
+            yield self.env.timeout(QUERY_INTERVAL)
             name = random.choice(names)
-            if name not in self.dns_cache:
-                self.query(name)
+            self.query(name)
