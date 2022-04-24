@@ -35,8 +35,10 @@ class DNSClient(Device):
 
     def process(self):
         while True:
-            yield self.env.timeout(CLIENT_PROCESS_TIME)
+            # Wait for packet to arrive before processing
             packet = yield self.queue.get()
+            # Start processing
+            yield self.env.timeout(CLIENT_PROCESS_TIME)
             logger.info("%s: Received: %s" % (self.name, packet))
             if isinstance(packet, DNSResponsePacket):
                 self.dns_cache[packet.name] = (packet.ip,

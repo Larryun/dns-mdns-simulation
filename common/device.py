@@ -24,6 +24,7 @@ class Device:
         self.group_ip = None
 
     def unicast(self, packet):
+        """ Send packet to the destination specified by packet """
         for l in self.link:
             for dev in l.devices:
                 if dev == packet.dest:
@@ -31,6 +32,7 @@ class Device:
                     return
 
     def multicast(self, group_ip, packet):
+        """ Send packet to the devices with matching group ip"""
         for l in self.link:
             for dev in l.devices:
                 if dev != self and dev.group_ip == group_ip:

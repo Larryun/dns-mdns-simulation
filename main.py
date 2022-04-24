@@ -1,16 +1,16 @@
 import ipaddress
 import logging
 
+import matplotlib.pyplot as plt
 import simpy
 
-from common.constant import LINK_TRANS_TIME, LINK_PACKET_CAPACITY
+from common import constant
 from common.link import Link
 from dns.client import DNSClient
 from dns.server import DNSServer
 from mdns.client import MDNSClient
 
-SIMULATION_TIME = 100000
-NUM_CLIENTS = 5
+SIMULATION_TIME = 10000
 
 
 def setup_root_logger():
@@ -34,7 +34,7 @@ def run_dns_simulation(num_clients):
         s1.add_dns_record(c.name, c.ip)
 
     # create ethernet link
-    eth = Link(env, "dns_local", LINK_TRANS_TIME, LINK_PACKET_CAPACITY)
+    eth = Link(env, "dns_local", constant.LINK_TRANS_TIME, constant.LINK_PACKET_CAPACITY)
 
     # connect clients and server
     for c in clients:
@@ -47,10 +47,7 @@ def run_dns_simulation(num_clients):
         env.process(c.generate(CLIENTS_NAME))
     env.run(until=SIMULATION_TIME)
 
-    # print metrics
-    print(eth.metric)
-    for c in clients:
-        print(c.metric)
+    return eth.metric, [c.metric for c in clients]
 
 
 def run_mdns_simulation(num_clients):
@@ -65,7 +62,7 @@ def run_mdns_simulation(num_clients):
         c.join_group(GROUP_IP)
 
     # create ethernet link
-    eth = Link(env, "mdns_local", LINK_TRANS_TIME, LINK_PACKET_CAPACITY)
+    eth = Link(env, "mdns_local", constant.LINK_TRANS_TIME, constant.LINK_PACKET_CAPACITY)
 
     # connect clients and server
     for c in clients:
@@ -76,14 +73,55 @@ def run_mdns_simulation(num_clients):
         env.process(c.generate(CLIENTS_NAME))
     env.run(until=SIMULATION_TIME)
 
-    # print metrics
-    print(eth.metric)
-    for c in clients:
-        print(c.metric)
+    return eth.metric, [c.metric for c in clients]
+
+
+def plt_graph(x, dns_y, mdns_y, ylabel, title):
+    # fig, ax = plt.subplots(1)
+    plt.plot(x, dns_y, '--', marker=".", label="DNS")
+    plt.plot(x, mdns_y, '-.', marker="v", label="mDNS")
+    plt.xlabel("Number of Clients")
+    plt.ylabel(ylabel)
+    plt.title(title)
+    plt.legend()
+    plt.show()
+
+
+def find_avg_client_cache_hit(client_m):
+    res = [metric.cache_hit_count / metric.query_count for metric in client_m]
+    return sum(res) / len(res)
 
 
 if __name__ == "__main__":
     # setup_root_logger()
+    num_clients = range(3, 33, 3)
+    dns_packet_count_y = []
+    mdns_packet_count_y = []
 
-    run_dns_simulation(NUM_CLIENTS)
-    run_mdns_simulation(NUM_CLIENTS)
+    dns_avg_waiting_y = []
+    mdns_avg_waiting_y = []
+
+    dns_avg_cache_hit_y = []
+    mdns_avg_cache_hit_y = []
+    for num_client in num_clients:
+        print("Running", num_client)
+        link_metric, client_metric = run_dns_simulation(num_client)
+        # print(link_metric, client_metric)
+        dns_packet_count_y.append(link_metric.packet_counts)
+        dns_avg_waiting_y.append(link_metric.link_total_waiting_time / link_metric.packet_counts)
+        dns_avg_cache_hit_y.append(find_avg_client_cache_hit(client_metric))
+        print(link_metric)
+        for m in client_metric:
+            print(m)
+
+        link_metric, client_metric = run_mdns_simulation(num_client)
+        mdns_packet_count_y.append(link_metric.packet_counts)
+        mdns_avg_waiting_y.append(link_metric.link_total_waiting_time / link_metric.packet_counts)
+        mdns_avg_cache_hit_y.append(find_avg_client_cache_hit(client_metric))
+        print(link_metric)
+        for m in client_metric:
+            print(m)
+
+    plt_graph(num_clients, dns_packet_count_y, mdns_packet_count_y, "Total Packet Counts", "Total Packet Counts")
+    plt_graph(num_clients, dns_avg_waiting_y, mdns_avg_waiting_y, "Average Waiting Time", "Average Waiting Time")
+    plt_graph(num_clients, dns_avg_cache_hit_y, mdns_avg_cache_hit_y, "Average Cache Hit Rate", "Average Cache Hit Rate")
