@@ -96,7 +96,7 @@ def find_avg_client_cache_hit(client_m):
 if __name__ == "__main__":
     # Uncomment this line to enable logging
     # setup_root_logger()
-    num_clients = range(3, 33, 3)
+    num_clients = range(3, 24, 2)
     dns_packet_count_y = []
     mdns_packet_count_y = []
 
