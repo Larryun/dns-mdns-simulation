@@ -42,6 +42,7 @@ class Device:
                     self.env.process(l.transmit(packet))
 
     def process(self):
+        """ Read from queue and process any incomming packet """
         raise NotImplementedError
 
     def __str__(self):

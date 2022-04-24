@@ -19,10 +19,12 @@ class MDNSClient(Device):
         self.metric = ClientMetric()
 
     def query(self, name):
+        """ Simulate a query operation by sending a multicast query packet to server.
+            If name in dns_cache then increase metric cache hit count by 1
+            If corresponding cache entry is expired or not in cache then make query to server.
+        """
         if name == self.name:
             return
-
-        # print(self.env.now, self.dns_cache)
 
         self.metric.query_count += 1
         if name not in self.dns_cache:
@@ -34,6 +36,11 @@ class MDNSClient(Device):
             self.metric.cache_hit_count += 1
 
     def process(self):
+        """ Process incoming packet and update dns_cache.
+            If incoming packet is DNSResponsePacket, update dns_cache with new expiration time.
+            If incoming packet is DNSQueryPacket, respond with its IP if the query name matches with
+            its name
+        """
         while True:
             # Wait for packet to arrive before processing
             packet = yield self.queue.get()
@@ -48,6 +55,7 @@ class MDNSClient(Device):
                     self.multicast(self.group_ip, DNSResponsePacket(self, None, self.name, self.ip))
 
     def generate(self, names):
+        """ Generate DNS query by randomly select a domain name """
         while True:
             yield self.env.timeout(QUERY_INTERVAL)
             name = random.choice(names)

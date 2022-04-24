@@ -19,7 +19,10 @@ class Link:
         self.metric = LinkMetric()
 
     def transmit(self, packet):
+        """ Transmit a packet to the destination device. Block if link is fulled. """
         t0 = self.env.now
+        # Block if link is fulled
+        # TODO: replace queue with simPy.Store
         while self.packet_count >= self.packet_capacity:
             yield self.env.timeout(LINK_BACKOFF_TIME)
         self.metric.link_total_waiting_time += (self.env.now - t0)
@@ -30,9 +33,11 @@ class Link:
         yield self.env.timeout(self.trans_time)
         logger.info("%s: Transmitted: %s" % (packet.src.name, packet))
         self.packet_count -= 1
+        # Deliver packet by adding the packet the destination queue
         yield packet.dest.queue.put(packet)
 
     def connect(self, dev1, dev2):
+        """ Connect two device by adding them to the set of connected devices in this link"""
         if dev2 is not None:
             self.devices.add(dev2)
             dev2.link.add(self)

@@ -23,24 +23,25 @@ def setup_root_logger():
 
 
 def run_dns_simulation(num_clients):
+    """ Run simulation with num_clients of DNS clients and 1 DNS server """
     CLIENTS_NAME = ["client%d" % i for i in range(num_clients)]
 
     env = simpy.Environment()
     s1 = DNSServer(env, "dns-server", ipaddress.IPv4Address("1.0.0.1"))
     clients = [DNSClient(env, CLIENTS_NAME[i], ipaddress.IPv4Address("1.0.0.2") + i, s1) for i in range(num_clients)]
 
-    # add DNS record to DNS server
+    # Add DNS record to DNS server
     for c in clients:
         s1.add_dns_record(c.name, c.ip)
 
-    # create ethernet link
+    # Create ethernet link
     eth = Link(env, "dns_local", constant.LINK_TRANS_TIME, constant.LINK_PACKET_CAPACITY)
 
-    # connect clients and server
+    # Connect clients and server
     for c in clients:
         eth.connect(s1, c)
 
-    # start simulation
+    # Start simulation
     env.process(s1.process())
     for c in clients:
         env.process(c.process())
@@ -51,20 +52,21 @@ def run_dns_simulation(num_clients):
 
 
 def run_mdns_simulation(num_clients):
+    """ Run simulation with num_clients of mDNS clients """
     CLIENTS_NAME = ["client%d" % i for i in range(num_clients)]
     GROUP_IP = ipaddress.IPv4Address("224.0.0.1")
 
     env = simpy.Environment()
     clients = [MDNSClient(env, CLIENTS_NAME[i], ipaddress.IPv4Address("1.0.0.1") + i) for i in range(num_clients)]
 
-    # add DNS record to DNS server
+    # Add DNS record to DNS server
     for c in clients:
         c.join_group(GROUP_IP)
 
-    # create ethernet link
+    # Create ethernet link
     eth = Link(env, "mdns_local", constant.LINK_TRANS_TIME, constant.LINK_PACKET_CAPACITY)
 
-    # connect clients and server
+    # Connect clients and server
     for c in clients:
         eth.connect(c, None)
 
@@ -77,7 +79,6 @@ def run_mdns_simulation(num_clients):
 
 
 def plt_graph(x, dns_y, mdns_y, ylabel, title):
-    # fig, ax = plt.subplots(1)
     plt.plot(x, dns_y, '--', marker=".", label="DNS")
     plt.plot(x, mdns_y, '-.', marker="v", label="mDNS")
     plt.xlabel("Number of Clients")
@@ -93,6 +94,7 @@ def find_avg_client_cache_hit(client_m):
 
 
 if __name__ == "__main__":
+    # Uncomment this line to enable logging
     # setup_root_logger()
     num_clients = range(3, 33, 3)
     dns_packet_count_y = []

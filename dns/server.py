@@ -18,6 +18,8 @@ class DNSServer(Device):
         self.dns_db[name] = ip
 
     def process(self):
+        """ Process packet from queue. Respond DNS a DNSResponsePacket
+            with query answer if packet type is DNSQueryPacket. """
         while True:
             packet = yield self.queue.get()
             yield self.env.timeout(DNS_SERVER_PROCESS_TIME)

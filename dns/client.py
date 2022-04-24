@@ -21,6 +21,10 @@ class DNSClient(Device):
         self.metric = ClientMetric()
 
     def query(self, name):
+        """ Simulate a query operation by sending an unicast query packet to server.
+            If name in dns_cache then increase metric cache hit count by 1
+            If corresponding cache entry is expired or not in cache then make query to server.
+        """
         if name == self.name:
             return
 
@@ -34,6 +38,7 @@ class DNSClient(Device):
             self.metric.cache_hit_count += 1
 
     def process(self):
+        """ Process incoming DNSResponsePacket and update dns_cache """
         while True:
             # Wait for packet to arrive before processing
             packet = yield self.queue.get()
@@ -45,6 +50,7 @@ class DNSClient(Device):
                                                self.env.now + ENTRY_EXPIRATION_TIME)
 
     def generate(self, names):
+        """ Generate DNS query by randomly select a domain name """
         while True:
             yield self.env.timeout(QUERY_INTERVAL)
             name = random.choice(names)
