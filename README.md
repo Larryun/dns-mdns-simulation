@@ -3,7 +3,7 @@ This is a simulation built with SimPy to compare the performance
 of DNS and multicast DNS (mDNS) in a local network.
 
 # Get Started
-Create a virtual environment and clone this repo
+Clone and install dependancy in a virtual environment
 ```shell
 git clone https://github.com/Larryun/dns-mdns-simulation
 pip install -r requirements.txt
@@ -42,6 +42,7 @@ The current simulation collected the following metrics during the simulation.
 Total packets counts is the number of packets of all type of packet that is transmitted over the link. 
 The simulation indicates that total packet counts growth exponentially in mDNS whereas DNS growth
 linearly. The result make sense since mDNS sends N-2 more query packets compare to unicast for every query. 
+
 <img src="docs/total_packet_count.png">
 
 ### Average Waiting Time
@@ -57,5 +58,6 @@ This also means that a high cache hit rate does not necessary implies higher per
 the cost of a cache miss is much higher. In the case of mDNS, a cache miss could lead to a query of N-1 packets 
 and N-1 answer packet to be delivered over the link in our model. Whereas only 1 query packet and 1 respond packet
 need to delivered over the link in standard DNS.
+
 <img src="docs/average_cache_hit_rate.png">
 
